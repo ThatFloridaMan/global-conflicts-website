@@ -216,6 +216,7 @@ apiRoute.post(async (req: NextApiRequest, res: NextApiResponse) => {
                 outcome: history.outcome,
                 gmNote: history.gmNote,
                 aarReplayLink: history.aarReplayLink,
+                discordThreadId: history.discordThreadId,
             });
         } catch (error) {
             console.error("Error posting history to Discord:", error);
@@ -350,6 +351,7 @@ apiRoute.put(async (req: NextApiRequest, res: NextApiResponse) => {
                 outcome: history.outcome,
                 gmNote: history.gmNote,
                 aarReplayLink: history.aarReplayLink,
+                discordThreadId: history.discordThreadId,
             });
         } catch (error) {
             console.error("Error posting history update to Discord:", error);

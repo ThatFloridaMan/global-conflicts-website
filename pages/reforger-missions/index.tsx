@@ -35,11 +35,116 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import AdminControlsModal from "../../components/modals/admin_controls_modal";
 import { calculateMissionScore, DEFAULT_SMART_CONFIG, SmartScoreConfig } from "../../lib/missionSmartScoring";
+import useSWR from "swr";
+import fetcher from "../../lib/fetcher";
 
 import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
+
+function PlayerCountChart() {
+	const [startDate, setStartDate] = useState<Date>(() => {
+		const d = new Date();
+		d.setHours(d.getHours() - 8);
+		return d;
+	});
+	const [endDate, setEndDate] = useState<Date>(new Date());
+
+	const params = new URLSearchParams();
+	params.set("startDate", startDate.toISOString());
+	params.set("endDate", endDate.toISOString());
+
+	const { data } = useSWR(`/api/server-sessions/chart?${params.toString()}`, fetcher, { refreshInterval: 30000 });
+	const timeline = data?.timeline ?? [];
+
+	const series = [{
+		name: "Players",
+		data: timeline.map((t: any) => ({
+			x: new Date(t.timestamp).getTime(),
+			y: t.players
+		}))
+	}];
+
+	const options: any = {
+		chart: {
+			type: 'area',
+			height: 250,
+			animations: { enabled: false },
+			toolbar: { show: false },
+			zoom: { enabled: false },
+			background: 'transparent'
+		},
+		dataLabels: { enabled: false },
+		stroke: { curve: 'smooth', width: 2 },
+		fill: {
+			type: 'gradient',
+			gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [20, 100] }
+		},
+		xaxis: {
+			type: 'datetime',
+			labels: { datetimeUTC: false, style: { colors: '#9ca3af' } },
+			axisBorder: { show: false },
+			axisTicks: { show: false }
+		},
+		yaxis: { labels: { style: { colors: '#9ca3af' } } },
+		tooltip: {
+			x: { format: 'HH:mm' },
+			theme: 'dark',
+			y: {
+				formatter: (val: number, { dataPointIndex }: any) => {
+					const mission = timeline[dataPointIndex]?.mission;
+					return `Players: ${val}${mission ? ` - ${mission}` : ''}`;
+				}
+			}
+		},
+		grid: { borderColor: '#374151', strokeDashArray: 4, xaxis: { lines: { show: true } } },
+		theme: { mode: 'dark' }
+	};
+
+	return (
+		<div className="bg-base-100 dark:bg-gray-900 border border-base-300 dark:border-gray-700 rounded-lg p-4 mt-4 w-full">
+			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+				<h2 className="text-sm font-bold uppercase tracking-widest opacity-70 flex items-center gap-2">
+					<ChartBarIcon className="w-4 h-4 text-primary" />
+					Server Player Count
+				</h2>
+				<div className="flex items-center gap-2 text-sm z-50">
+					<DatePicker
+						selected={startDate}
+						onChange={(date: Date) => setStartDate(date)}
+						showTimeSelect
+						timeFormat="HH:mm"
+						timeIntervals={60}
+						dateFormat="MMM d, HH:mm"
+						className="input input-sm input-bordered w-36 bg-base-200 dark:bg-gray-800 text-xs"
+					/>
+					<span className="opacity-50">to</span>
+					<DatePicker
+						selected={endDate}
+						onChange={(date: Date) => setEndDate(date)}
+						showTimeSelect
+						timeFormat="HH:mm"
+						timeIntervals={60}
+						dateFormat="MMM d, HH:mm"
+						className="input input-sm input-bordered w-36 bg-base-200 dark:bg-gray-800 text-xs"
+					/>
+				</div>
+			</div>
+			{timeline.length === 0 ? (
+				<div className="h-[250px] flex items-center justify-center text-sm opacity-50 italic">
+					No player data for this time period
+				</div>
+			) : (
+				<div className="h-[250px]">
+					<ApexChart options={options} series={series} type="area" height={250} />
+				</div>
+			)}
+		</div>
+	);
+}
 
 // Normalise legacy type prefixes that the sync now converts server-side
 function normalizeType(raw: string | undefined): string {
@@ -1942,6 +2047,11 @@ function ReforgerMissionList({ missions }) {
 											/>
 										)}
 									</div>
+
+									<div className="divider my-0 before:bg-base-300 after:bg-base-300 dark:before:bg-gray-700 dark:after:bg-gray-700" />
+
+									{/* Player Count Chart */}
+									<PlayerCountChart />
 								</div>
 							)}
 
