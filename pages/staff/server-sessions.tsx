@@ -1279,7 +1279,7 @@ export default function ServerSessionsPage() {
         };
     }, [missionList]);
 
-    if (!session || !hasCredsAny(session, [CREDENTIAL.ADMIN, CREDENTIAL.MISSION_REVIEWER])) {
+    if (!session || !hasCredsAny(session, [CREDENTIAL.ADMIN, CREDENTIAL.MISSION_REVIEWER, CREDENTIAL.GM])) {
         return (
             <div className="flex items-center justify-center h-screen">
                 <div className="text-xl">Not Authorized</div>

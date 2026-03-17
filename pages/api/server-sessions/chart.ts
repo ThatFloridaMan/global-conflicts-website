@@ -16,29 +16,33 @@ const apiRoute = nextConnect({
 });
 
 apiRoute.get(async (req: NextApiRequest, res: NextApiResponse) => {
-    const session = await getServerSession(req, res, authOptions);
-    if (!hasCredsAny(session, [CREDENTIAL.ADMIN, CREDENTIAL.MISSION_REVIEWER, CREDENTIAL.GM])) {
-        return res.status(401).json({ error: "Not Authorized" });
-    }
-
     try {
         const db = (await MyMongo).db("prod");
-        
-        // Find the most recent session to anchor our timeline
-        const latestSession = await db.collection("server_sessions")
-            .find({ snapshots: { $exists: true, $not: { $size: 0 } } })
-            .sort({ startedAt: -1 })
-            .limit(1)
-            .project({ startedAt: 1, endedAt: 1 })
-            .toArray();
+        const { startDate, endDate } = req.query;
 
-        if (latestSession.length === 0) {
-            return res.status(200).json({ timeline: [] });
+        let windowStart: Date;
+        let windowEnd: Date;
+
+        if (startDate && endDate) {
+            windowStart = new Date(startDate as string);
+            windowEnd = new Date(endDate as string);
+        } else {
+            // Find the most recent session to anchor our timeline
+            const latestSession = await db.collection("server_sessions")
+                .find({ snapshots: { $exists: true, $not: { $size: 0 } } })
+                .sort({ startedAt: -1 })
+                .limit(1)
+                .project({ startedAt: 1, endedAt: 1 })
+                .toArray();
+
+            if (latestSession.length === 0) {
+                return res.status(200).json({ timeline: [] });
+            }
+
+            const anchorTime = latestSession[0].endedAt ? new Date(latestSession[0].endedAt) : new Date();
+            windowEnd = anchorTime;
+            windowStart = new Date(anchorTime.getTime() - 8 * 60 * 60 * 1000);
         }
-
-        const anchorTime = latestSession[0].endedAt ? new Date(latestSession[0].endedAt) : new Date();
-        const windowEnd = anchorTime;
-        const windowStart = new Date(anchorTime.getTime() - 8 * 60 * 60 * 1000);
 
         // Fetch all snapshots from sessions that were active within this window
         const sessions = await db.collection("server_sessions").find({

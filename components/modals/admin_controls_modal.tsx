@@ -599,30 +599,18 @@ export default function AdminControlsModal({
                                     <h4 className="font-semibold text-sm uppercase tracking-wide opacity-70">Standard Sync & Logs</h4>
 
                                     {hasCredsAny(session, [CREDENTIAL.ADMIN, CREDENTIAL.MISSION_REVIEWER, CREDENTIAL.GM]) && (
-                                        <>
-                                            <button 
-                                                disabled={isSyncing}
-                                                onClick={() => onSync()}
-                                                className={`btn btn-primary w-full ${isSyncing ? 'loading' : ''}`}
-                                            >
-                                                {!isSyncing && <RefreshIcon className="w-5 h-5 mr-2" />}
-                                                Sync Recent Updates
-                                            </button>
-
-                                            <button
-                                                disabled={isSyncing}
-                                                onClick={() => setDateModalOpen(true)}
-                                                className="btn btn-secondary w-full"
-                                            >
-                                                <CalendarIcon className="w-5 h-5 mr-2" />
-                                                Sync Since Date...
-                                            </button>
-                                        </>
+                                        <button
+                                            disabled={isSyncing}
+                                            onClick={() => onSync()}
+                                            className={`btn btn-primary w-full ${isSyncing ? 'loading' : ''}`}
+                                        >
+                                            {!isSyncing && <RefreshIcon className="w-5 h-5 mr-2" />}
+                                            Sync GitHub Repository
+                                        </button>
                                     )}
                                     <a href="/logs" className="btn btn-info btn-sm w-full">
                                         View Logs
-                                    </a>
-                                    <a href="/staff/server-sessions" className="btn btn-info btn-sm w-full">
+                                    </a>                                    <a href="/staff/server-sessions" className="btn btn-info btn-sm w-full">
                                         Server Sessions
                                     </a>
                                 </div>
@@ -735,17 +723,6 @@ export default function AdminControlsModal({
                                             >
                                                 Fix Duplicate URL Slugs
                                             </button>
-                                            <button
-                                                disabled={isSyncing}
-                                                onClick={() => {
-                                                    if(confirm("Full sync will re-crawl the entire repository. This should only be done for initial setup or major resets. Proceed?")) {
-                                                        onFullSync();
-                                                    }
-                                                }}
-                                                className="btn btn-warning btn-outline w-full"
-                                            >
-                                                Force Full Refresh
-                                            </button>
                                             <a
                                                 href="/reforger-missions/migrate"
                                                 className="btn btn-accent w-full"
@@ -775,19 +752,10 @@ export default function AdminControlsModal({
 									Close
 								</button>
 							</div>
-                            
-                            <DateSelectionModal
-                                isOpen={dateModalOpen}
-                                onClose={() => setDateModalOpen(false)}
-                                onConfirm={(date) => {
-                                    onDateSyncConfirm(date);
-                                }}
-                                title="Sync Changes Since..."
-                            />
-						</div>
-					</Transition.Child>
-				</div>
-			</Dialog>
-		</Transition>
-	);
-}
+							</div>
+							</Transition.Child>
+							</div>
+							</Dialog>
+							</Transition>
+							);
+							}
