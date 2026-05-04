@@ -1132,12 +1132,9 @@ export default function MissionDetails({
 
 
     function getStatusIcon(status, notes) {
-        let icon = <QuestionMarkCircleIcon className="w-6 h-6 text-gray-400" />;
-        
-        switch(status) {
-            case "No issues":
-                icon = <CheckCircleIcon className="w-6 h-6 text-green-500" />;
-                break;
+        let icon = <CheckCircleIcon className="w-6 h-6 text-green-500" />;
+
+        switch (status) {
             case "New":
                 icon = <div className="badge badge-info badge-sm">NEW</div>;
                 break;
@@ -1153,7 +1150,7 @@ export default function MissionDetails({
         }
     
         return (
-            <div className="tooltip" data-tip={notes || status || "No status info"}>
+            <div className="tooltip" data-tip={notes ? `${status}: ${notes}` : (status || "No status info")}>
                 {icon}
             </div>
         );

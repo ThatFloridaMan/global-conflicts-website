@@ -100,6 +100,7 @@ function EditReforgerMission({ mission }) {
 			status: { value: mission.status, label: mission.status },
 			statusNotes: mission.statusNotes || "",
 			missionGroup: mission.missionGroup || "",
+			isUnlisted: mission.isUnlisted || false,
 			media: null,
 		},
 		validate: (fields) => {
@@ -220,6 +221,7 @@ function EditReforgerMission({ mission }) {
 					status: values.status?.value,
 					statusNotes: values.statusNotes,
 					missionGroup: values.missionGroup.trim() || null,
+					isUnlisted: values.isUnlisted,
 				});
 
 				toast.done(uploadProgressToast.current);
@@ -271,9 +273,21 @@ function EditReforgerMission({ mission }) {
 									{ value: "New", label: "New" },
 									{ value: "Minor issues", label: "Minor issues" },
 									{ value: "Major issues", label: "Major issues" },
-									{ value: "Unavailable", label: "Unavailable" },
 								]}
 							/>
+						</div>
+
+						<div className="flex-1 min-w-0 form-control">
+							<label className="label cursor-pointer justify-start gap-3 h-full">
+								<input 
+									type="checkbox" 
+									className="checkbox checkbox-primary" 
+									name="isUnlisted"
+									checked={missionFormik.values.isUnlisted}
+									onChange={missionFormik.handleChange}
+								/>
+								<span className="label-text font-bold">Unlisted (Hide from main list)</span>
+							</label>
 						</div>
 
 						<div className="flex-1 min-w-0 form-control">
