@@ -45,13 +45,151 @@ import "react-datepicker/dist/react-datepicker.css";
 
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
+function SessionAggregationChart() {
+    const [startDate, setStartDate] = useState<Date>(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 6);
+        return d;
+    });
+    const [endDate, setEndDate] = useState<Date>(new Date());
+
+    const params = new URLSearchParams();
+    params.set("startDate", startDate.toISOString());
+    params.set("endDate", endDate.toISOString());
+
+    const { data } = useSWR(`/api/server-sessions/aggregated?${params.toString()}`, fetcher);
+    const aggregated = data?.aggregated ?? [];
+
+    const series = [
+        { name: "Peak", data: aggregated.map(s => s.peak) },
+        { name: "Average", data: aggregated.map(s => s.average) },
+        { name: "Unique", data: aggregated.map(s => s.unique) },
+    ];
+
+    const options: ApexOptions = {
+        chart: {
+            type: 'bar',
+            height: 300,
+            animations: { enabled: false },
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '70%',
+                borderRadius: 4
+            },
+        },
+        dataLabels: { enabled: false },
+        stroke: { show: true, width: 2, colors: ['transparent'] },
+        xaxis: {
+            categories: aggregated.map(s => s.label),
+            labels: { rotate: -45, rotateAlways: true, style: { colors: '#9ca3af', fontSize: '10px' } },
+            axisBorder: { show: false },
+            axisTicks: { show: false }
+        },
+        yaxis: { title: { text: "Players", style: { color: '#9ca3af' } }, labels: { style: { colors: '#9ca3af' } } },
+        fill: { opacity: 1 },
+        tooltip: {
+            theme: 'dark',
+            y: { formatter: (val) => `${val} players` }
+        },
+        grid: { borderColor: '#374151', strokeDashArray: 4 },
+        legend: { position: 'top', labels: { colors: '#9ca3af' } },
+        theme: { mode: 'dark' },
+        colors: ['#ef4444', '#3b82f6', '#10b981'] // Red, Blue, Green
+    };
+
+    return (
+        <div className="bg-base-100 dark:bg-gray-900 border border-base-300 dark:border-gray-700 rounded-lg p-4 mt-4 w-full">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-widest opacity-70 flex items-center gap-2">
+                    <ChartBarIcon className="w-4 h-4 text-primary" />
+                    Comprehensive Session Aggregation
+                </h2>
+                <div className="flex items-center gap-2 text-sm z-50">
+                    <DatePicker
+                        selected={startDate}
+                        onChange={(date: Date) => setStartDate(date)}
+                        dateFormat="MMM d, yyyy"
+                        className="input input-sm input-bordered w-32 bg-base-200 dark:bg-gray-800 text-xs"
+                    />
+                    <span className="opacity-50">to</span>
+                    <DatePicker
+                        selected={endDate}
+                        onChange={(date: Date) => setEndDate(date)}
+                        dateFormat="MMM d, yyyy"
+                        className="input input-sm input-bordered w-32 bg-base-200 dark:bg-gray-800 text-xs"
+                    />
+                </div>
+            </div>
+            {aggregated.length === 0 ? (
+                <div className="h-[300px] flex items-center justify-center text-sm opacity-50 italic">
+                    No session data available
+                </div>
+            ) : (
+                <div className="h-[350px]">
+                    <ApexChart options={options} series={series} type="bar" height={300} />
+                </div>
+            )}
+        </div>
+    );
+}
+
 function PlayerCountChart() {
-	const [startDate, setStartDate] = useState<Date>(() => {
-		const d = new Date();
-		d.setHours(d.getHours() - 8);
-		return d;
-	});
-	const [endDate, setEndDate] = useState<Date>(new Date());
+    const [selectedWeek, setSelectedWeek] = useState<number | 'custom'>(0);
+    const [customStartDate, setCustomStartDate] = useState<Date>(() => {
+        const d = new Date();
+        d.setHours(d.getHours() - 24);
+        return d;
+    });
+    const [customEndDate, setCustomEndDate] = useState<Date>(new Date());
+
+    const { startDate, endDate, weekOptions } = useMemo(() => {
+        const options: { label: string; start: Date; end: Date; value: number }[] = [];
+        const now = new Date();
+        
+        const currentMonday = new Date(now);
+        const day = currentMonday.getDay();
+        const diff = (day === 0 ? -6 : 1) - day;
+        currentMonday.setDate(currentMonday.getDate() + diff);
+        currentMonday.setHours(12, 0, 0, 0);
+
+        if (now < currentMonday) {
+            currentMonday.setDate(currentMonday.getDate() - 7);
+        }
+
+        for (let i = 0; i < 10; i++) {
+            const start = new Date(currentMonday);
+            start.setDate(currentMonday.getDate() - (i * 7));
+            
+            const end = new Date(start);
+            end.setDate(start.getDate() + 7);
+            end.setHours(11, 59, 59, 999);
+
+            options.push({
+                value: i,
+                label: `Week of ${moment(start).format("D MMM")} - ${moment(end).format("D MMM")}`,
+                start,
+                end
+            });
+        }
+
+        if (selectedWeek === 'custom') {
+            return {
+                startDate: customStartDate,
+                endDate: customEndDate,
+                weekOptions: options
+            };
+        }
+
+        return {
+            startDate: options[selectedWeek].start,
+            endDate: options[selectedWeek].end,
+            weekOptions: options
+        };
+    }, [selectedWeek, customStartDate, customEndDate]);
 
 	const params = new URLSearchParams();
 	params.set("startDate", startDate.toISOString());
@@ -64,7 +202,7 @@ function PlayerCountChart() {
 		name: "Players",
 		data: timeline.map((t: any) => ({
 			x: new Date(t.timestamp).getTime(),
-			y: t.players
+			y: t.players === 0 ? null : t.players
 		}))
 	}];
 
@@ -111,26 +249,47 @@ function PlayerCountChart() {
 					<ChartBarIcon className="w-4 h-4 text-primary" />
 					Server Player Count
 				</h2>
-				<div className="flex items-center gap-2 text-sm z-50">
-					<DatePicker
-						selected={startDate}
-						onChange={(date: Date) => setStartDate(date)}
-						showTimeSelect
-						timeFormat="HH:mm"
-						timeIntervals={60}
-						dateFormat="MMM d, HH:mm"
-						className="input input-sm input-bordered w-36 bg-base-200 dark:bg-gray-800 text-xs"
-					/>
-					<span className="opacity-50">to</span>
-					<DatePicker
-						selected={endDate}
-						onChange={(date: Date) => setEndDate(date)}
-						showTimeSelect
-						timeFormat="HH:mm"
-						timeIntervals={60}
-						dateFormat="MMM d, HH:mm"
-						className="input input-sm input-bordered w-36 bg-base-200 dark:bg-gray-800 text-xs"
-					/>
+				<div className="flex flex-wrap items-center gap-3 text-sm z-50">
+                    <div className="flex items-center gap-2">
+                        <span className="opacity-50 text-xs uppercase font-bold tracking-tight">Window:</span>
+                        <select 
+                            value={selectedWeek}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setSelectedWeek(val === 'custom' ? 'custom' : Number(val));
+                            }}
+                            className="select select-sm select-bordered bg-base-200 dark:bg-gray-800 text-xs"
+                        >
+                            {weekOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+
+                    {selectedWeek === 'custom' && (
+                        <div className="flex items-center gap-2">
+                            <DatePicker
+                                selected={customStartDate}
+                                onChange={(date: Date) => setCustomStartDate(date)}
+                                showTimeSelect
+                                timeFormat="HH:mm"
+                                timeIntervals={60}
+                                dateFormat="MMM d, HH:mm"
+                                className="input input-sm input-bordered w-36 bg-base-200 dark:bg-gray-800 text-xs"
+                            />
+                            <span className="opacity-50 text-xs">to</span>
+                            <DatePicker
+                                selected={customEndDate}
+                                onChange={(date: Date) => setCustomEndDate(date)}
+                                showTimeSelect
+                                timeFormat="HH:mm"
+                                timeIntervals={60}
+                                dateFormat="MMM d, HH:mm"
+                                className="input input-sm input-bordered w-36 bg-base-200 dark:bg-gray-800 text-xs"
+                            />
+                        </div>
+                    )}
 				</div>
 			</div>
 			{timeline.length === 0 ? (
@@ -145,6 +304,8 @@ function PlayerCountChart() {
 		</div>
 	);
 }
+
+
 
 // Normalise legacy type prefixes that the sync now converts server-side
 function formatMinutes(mins: number | null): string {
@@ -2157,6 +2318,9 @@ function ReforgerMissionList({ missions }) {
 									</div>
 
 									<div className="divider my-0 before:bg-base-300 after:bg-base-300 dark:before:bg-gray-700 dark:after:bg-gray-700" />
+
+									{/* Comprehensive Session Aggregation */}
+									<SessionAggregationChart />
 
 									{/* Player Count Chart */}
 									<PlayerCountChart />
