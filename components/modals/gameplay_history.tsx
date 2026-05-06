@@ -659,7 +659,7 @@ export default function GameplayHistoryModal({
 												isClearable
 												isLoading={nearSessionsLoading}
 												placeholder="None (no chart linked)"
-												options={nearSessions}
+												options={nearSessions.filter((s) => s.snapshotCount > 0)}
 												value={nearSessions.find((s) => s._id === serverSessionId) ?? (serverSessionId ? { _id: serverSessionId, missionString: "Linked session (outside date range)" } : null)}
 												onChange={(val) => setServerSessionId(val ? val._id : null)}
 												getOptionValue={(o) => o._id}

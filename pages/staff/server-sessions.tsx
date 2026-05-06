@@ -383,7 +383,7 @@ function ConfidenceDot({ missionString, missionUniqueName, missionLinkSource }: 
 }
 
 function EndReasonBadge({ session }: { session: any }) {
-    if (session.isPlaceholder) {
+    if (session.isPlaceholder && !session.endedAt) {
         return (
             <span className="badge badge-warning badge-sm gap-1">
                 <span className="animate-spin w-1.5 h-1.5 border border-current border-t-transparent rounded-full inline-block" />
