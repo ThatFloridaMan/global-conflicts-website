@@ -2475,8 +2475,8 @@ export async function getServerSideProps() {
                                 cond: {
                                     $and: [
                                         { $ne: ["$$h.isSkeleton", true] },
-                                        { $eq: [{ $type: "$$h.sessionStartedAt" }, "string"] },
-                                        { $eq: [{ $type: "$$h.sessionEndedAt" }, "string"] }
+                                        { $ne: ["$$h.sessionStartedAt", null] },
+                                        { $ne: ["$$h.sessionEndedAt", null] }
                                     ]
                                 }
                             }
@@ -2486,8 +2486,8 @@ export async function getServerSideProps() {
                             $divide: [
                                 {
                                     $subtract: [
-                                        { $dateFromString: { dateString: "$$h.sessionEndedAt" } },
-                                        { $dateFromString: { dateString: "$$h.sessionStartedAt" } }
+                                        { $toDate: "$$h.sessionEndedAt" },
+                                        { $toDate: "$$h.sessionStartedAt" }
                                     ]
                                 },
                                 60000
